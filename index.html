@@ -1,194 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>CADNote · Canadian Banknote Detection</title>
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.min.js"></script>
 <style>
-:root{--cols:12;--gutter:24px;--margin:48px;--bl:8px;--lh:24px;--maxw:1200px;--red:#FF6A00;--black:#111;--white:#FFF;--gray:#666;}
+:root{--cols:12;--gutter:24px;--margin:48px;--bl:8px;--lh:24px;--maxw:1200px;--red:#FF6A00;--gold:#FFC400;--black:#111;--white:#FFF;--gray:#666;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-body{min-height:100vh;font-family:'Helvetica Neue','Inter','Helvetica','Arial',sans-serif;font-size:16px;line-height:var(--lh);color:var(--black);background:var(--white);text-align:left;-webkit-font-smoothing:antialiased;}
-.container{max-width:var(--maxw);margin:0 auto;padding:0 var(--margin);display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:var(--gutter);}
-.grid-full{grid-column:1 / -1;}
-.grid-8{grid-column:span 8;}
-.grid-4{grid-column:span 4;}
-.grid-3{grid-column:span 3;}
-.grid-6{grid-column:span 6;}
-.bl{margin-bottom:var(--bl);}
-.bl2{margin-bottom:calc(var(--bl) * 2);}
-.bl3{margin-bottom:calc(var(--bl) * 3);}
-.bl4{margin-bottom:calc(var(--bl) * 4);}
-.bl6{margin-bottom:calc(var(--bl) * 6);}
-header{padding:calc(var(--bl) * 6) 0 calc(var(--bl) * 3);border-bottom:1px solid var(--black);}
-.logo{font-size:48px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:var(--red);margin-bottom:var(--bl);}
-.tagline{font-size:18px;line-height:var(--lh);color:var(--gray);max-width:40ch;}
-h2{font-size:32px;font-weight:900;line-height:calc(var(--bl) * 5);letter-spacing:-0.02em;margin-bottom:calc(var(--bl) * 2);}
-h3{font-size:24px;font-weight:700;line-height:calc(var(--bl) * 4);margin-bottom:var(--bl);}
-h4{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;line-height:var(--lh);margin-bottom:var(--bl);}
-p{margin-bottom:calc(var(--bl) * 2);}
-.modes{display:grid;gap:var(--bl);margin-bottom:calc(var(--bl) * 3);}
-.mode-btn{width:100%;text-align:left;background:var(--white);border:2px solid var(--black);color:var(--black);padding:calc(var(--bl) * 2);font-size:16px;font-weight:700;cursor:pointer;transition:all 0.15s;}
+body{min-height:100vh;font-family:'Helvetica Neue','Inter','Helvetica','Arial',sans-serif;font-size:16px;line-height:var(--lh);color:var(--black);background:var(--white);-webkit-font-smoothing:antialiased;}
+.container{max-width:var(--maxw);margin:0 auto;padding:0 var(--margin);}
+header{padding:48px 0 24px;border-bottom:1px solid var(--black);margin-bottom:32px;}
+.logo{font-size:48px;font-weight:900;letter-spacing:-0.03em;line-height:1;color:var(--red);margin-bottom:8px;}
+.tagline{font-size:18px;color:var(--gray);max-width:60ch;}
+.grid{display:grid;grid-template-columns:1fr 2fr;gap:32px;}
+h4{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;}
+.modes{margin-bottom:24px;}
+.mode-btn{display:block;width:100%;text-align:left;background:var(--white);border:2px solid var(--black);color:var(--black);padding:16px;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.15s;margin-bottom:8px;}
 .mode-btn:hover{background:var(--black);color:var(--white);}
 .mode-btn.active{background:var(--red);color:var(--white);border-color:var(--red);}
-.drop-zone{border:2px dashed var(--gray);padding:calc(var(--bl) * 6) var(--gutter);text-align:center;cursor:pointer;margin-bottom:calc(var(--bl) * 3);transition:all 0.2s;}
+.notes{font-size:14px;color:var(--gray);}
+.drop-zone{border:2px dashed var(--gray);padding:48px 24px;text-align:center;cursor:pointer;margin-bottom:24px;transition:all 0.2s;}
 .drop-zone:hover,.drop-zone.drag{border-color:var(--red);background:rgba(255,106,0,0.05);}
 .drop-zone strong{color:var(--red);}
 .hide{display:none!important;}
-.controls{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--gutter);margin-bottom:calc(var(--bl) * 3);}
-.control label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--gray);margin-bottom:var(--bl);}
-input[type=range]{width:100%;height:var(--bl);accent-color:var(--red);}
-.btn{border:2px solid var(--black);background:var(--white);color:var(--black);padding:calc(var(--bl) * 2) calc(var(--bl) * 3);font-size:16px;font-weight:700;cursor:pointer;transition:all 0.15s;text-transform:uppercase;letter-spacing:0.05em;}
-.btn:hover:not(:disabled){background:var(--black);color:var(--white);}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;}
+.control label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--gray);margin-bottom:8px;}
+input[type=range]{width:100%;accent-color:var(--red);}
+.cam-btns{margin-bottom:24px;}
+.btn{border:2px solid var(--black);background:var(--white);color:var(--black);padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;margin-right:8px;}
 .btn.primary{background:var(--red);color:var(--white);border-color:var(--red);}
-.btn.primary:hover:not(:disabled){background:var(--black);border-color:var(--black);}
 .btn:disabled{opacity:0.3;cursor:not-allowed;}
-.canvas-wrap{position:relative;width:100%;min-height:400px;border:2px solid var(--black);margin-bottom:calc(var(--bl) * 3);display:flex;align-items:center;justify-content:center;background:var(--black);}
+.canvas-wrap{position:relative;width:100%;min-height:360px;border:2px solid var(--black);margin-bottom:16px;display:flex;align-items:center;justify-content:center;background:var(--black);}
 canvas{display:block;max-width:100%;height:auto;}
 video{display:none;}
-.status{display:flex;align-items:center;gap:calc(var(--bl) * 2);margin-bottom:calc(var(--bl) * 2);padding:calc(var(--bl) * 2);border:1px solid var(--black);}
-.status-dot{width:calc(var(--bl) * 2);height:calc(var(--bl) * 2);border-radius:50%;background:var(--gray);}
+.status{display:flex;align-items:center;gap:12px;padding:16px;border:1px solid var(--black);margin-bottom:16px;}
+.status-dot{width:16px;height:16px;border-radius:50%;background:var(--gray);flex:none;}
 .status-dot.on{background:var(--red);}
-.status-dot.busy{background:#FFC400;animation:pulse 1s infinite;}
+.status-dot.busy{background:var(--gold);animation:pulse 1s infinite;}
 .status-dot.err{background:var(--black);}
 @keyframes pulse{50%{opacity:0.3;}}
-.progress{height:var(--bl);background:var(--gray);margin-bottom:calc(var(--bl) * 2);overflow:hidden;}
+.progress{height:8px;background:#eee;overflow:hidden;margin-bottom:16px;}
 .progress-bar{height:100%;background:var(--red);width:0;transition:width 0.3s;}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gutter);margin-bottom:calc(var(--bl) * 4);}
-.stat{border:2px solid var(--black);padding:calc(var(--bl) * 3);}
-.stat-v{font-size:48px;font-weight:900;line-height:1;color:var(--red);margin-bottom:var(--bl);}
-.stat-k{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--gray);}
-.detlist{border-top:2px solid var(--black);padding-top:calc(var(--bl) * 2);margin-bottom:calc(var(--bl) * 4);}
-.det-row{display:flex;justify-content:space-between;align-items:center;padding:var(--bl) 0;border-bottom:1px solid var(--gray);}
-.det-badge{background:var(--red);color:var(--white);padding:calc(var(--bl) / 2) var(--bl);font-size:14px;font-weight:900;letter-spacing:0.05em;}
-.disclaimer{border-left:4px solid var(--red);padding-left:calc(var(--bl) * 3);margin-bottom:calc(var(--bl) * 6);color:var(--gray);font-size:14px;line-height:var(--lh);}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}
+.stat{border:2px solid var(--black);padding:16px;}
+.stat-v{font-size:36px;font-weight:900;line-height:1;color:var(--red);margin-bottom:4px;}
+.stat-k{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--gray);}
+.detlist{border-top:2px solid var(--black);padding-top:12px;margin-bottom:24px;}
+.det-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #ddd;}
+.det-badge{background:var(--red);color:var(--white);padding:4px 8px;font-size:13px;font-weight:900;}
+.disclaimer{border-left:4px solid var(--red);padding-left:24px;margin:24px 0 48px;color:var(--gray);font-size:14px;}
 .disclaimer strong{color:var(--black);}
-footer{border-top:2px solid var(--black);padding:calc(var(--bl) * 4) 0;margin-top:calc(var(--bl) * 6);}
-.footer-text{font-size:12px;color:var(--gray);}
-@media(max-width:900px){:root{--cols:6;--margin:24px;--gutter:16px;}.grid-8,.grid-4,.grid-3,.grid-6{grid-column:1 / -1;}.stats{grid-template-columns:repeat(2,1fr);}.controls{grid-template-columns:1fr;}}
-</style>
+footer{border-top:2px solid var(--black);padding:32px 0;margin-top:48px;font-size:12px;color:var(--gray);}
+@media(max-width:900px){:root{--margin:24px;}.grid{grid-template-columns:1fr;}.controls{grid-template-columns:1fr;}}
+<\/style>
 </head>
 <body>
 <div class="container">
-<header class="grid-full">
+<header>
 <div class="logo">CADNote</div>
-<p class="tagline">Real-time Canadian polymer banknote detection using YOLO, detecting denominations CAD 5, 10, 20, 50, 100 plus security features (fr_maple_leaf, sign_gov). Developed by Derrick Mirindi, David Sinkhonde and Frederic Mirindi.</p>
+<div class="tagline">Real-time Canadian polymer banknote detection using YOLO — CAD 5, 10, 20, 50, 100 plus security features (fr_maple_leaf, sign_gov). Developed by Derrick Mirindi, David Sinkhonde and Frederic Mirindi.</div>
 </header>
-<div class="grid-4">
+<div class="grid">
+<div>
 <h4>Input Mode</h4>
 <div class="modes">
 <button class="mode-btn active" data-mode="image">Image</button>
-<button class="mode-btn" data-mode="video">Video</button>
-<button class="mode-btn" data-mode="webcam">Live Camera</button>
+<button class="mode-btn" data-mode="camera">Live Camera</button>
 </div>
 <h4>Model Notes</h4>
-<p>Using best_fp32.onnx (FP32) exported from the YOLOv8s best.pt weights. ONNX Runtime Web (WASM) requires FP32 — FP16 exports fail with a float16 type-mismatch. Re-export with half=False.</p>
+<p class="notes">Using best_fp32.onnx (FP32) exported from the YOLOv8s best.pt weights. ONNX Runtime Web (WASM) requires FP32 — FP16 exports fail with a float16 type-mismatch. Re-export with half=False.</p>
 </div>
-<div class="grid-8">
-<div id="dropZone" class="drop-zone">
-<p><strong>Click or drag</strong> a Canadian banknote image here</p>
-</div>
+<div>
+<div id="imagePane">
+<div class="drop-zone" id="dropZone"><strong>Click or drag</strong> a Canadian banknote image here</div>
 <input id="fileInput" type="file" class="hide" accept="image/*">
+</div>
+<div id="camPane" class="cam-btns hide">
+<button class="btn primary" id="startCam">Start Camera</button>
+<button class="btn" id="stopCam" disabled>Stop</button>
+</div>
 <div class="controls">
-<div class="control">
-<label>Confidence: <span id="confVal">0.25</span></label>
-<input id="confSlider" type="range" min="0.05" max="0.95" step="0.05" value="0.25">
+<div class="control"><label>Confidence: <span id="confVal">0.25</span></label><input id="confSlider" type="range" min="0.05" max="0.95" step="0.05" value="0.25"></div>
+<div class="control"><label>IoU (NMS): <span id="iouVal">0.45</span></label><input id="iouSlider" type="range" min="0.1" max="0.9" step="0.05" value="0.45"></div>
 </div>
-<div class="control">
-<label>IoU (NMS): <span id="iouVal">0.45</span></label>
-<input id="iouSlider" type="range" min="0.1" max="0.9" step="0.05" value="0.45">
-</div>
-</div>
-<div class="bl3">
-<button id="camBtn" class="btn primary hide">Start Camera</button>
-<button id="stopBtn" class="btn hide">Stop</button>
-</div>
-<div class="status">
-<span id="dot" class="status-dot"></span>
-<span id="statusText">Initializing...</span>
-</div>
-<div id="progressWrap" class="progress hide"><div id="progressBar" class="progress-bar"></div></div>
+<div class="status"><span class="status-dot" id="dot"></span><span id="statusText">Initializing...</span></div>
+<div class="progress hide" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
 <div class="canvas-wrap"><canvas id="canvas" width="640" height="360"></canvas><video id="video" playsinline></video></div>
 <div class="stats">
-<div class="stat"><div class="stat-v" id="statCount">0</div><div class="stat-k">Notes Detected</div></div>
-<div class="stat"><div class="stat-v" id="statMax">—</div><div class="stat-k">Max Confidence</div></div>
-<div class="stat"><div class="stat-v" id="statTime">—</div><div class="stat-k">Inference (ms)</div></div>
-<div class="stat"><div class="stat-v" id="statFps">—</div><div class="stat-k">FPS (live)</div></div>
+<div class="stat"><div class="stat-v" id="statNotes">0</div><div class="stat-k">Notes Detected</div></div>
+<div class="stat"><div class="stat-v" id="statConf">—</div><div class="stat-k">Max Confidence</div></div>
+<div class="stat"><div class="stat-v" id="statMs">—</div><div class="stat-k">Inference (ms)</div></div>
 </div>
 <div class="detlist" id="detList"></div>
 </div>
-<div class="grid-full disclaimer">
-<p><strong>Research and assistive/educational use only.</strong> This application is not a certified financial or anti-counterfeiting device and must never be used for production banknote authentication, payment validation, or counterfeit determination. Always verify currency using official Bank of Canada guidance and authorized equipment.</p>
 </div>
-<footer class="grid-full">
-<p class="footer-text">CADNote · Developed by Derrick Mirindi · David Sinkhonde · Frederic Mirindi</p>
-</footer>
+<div class="disclaimer"><strong>Research and assistive/educational use only.</strong> This application is not a certified financial or anti-counterfeiting device and must never be used for production banknote authentication, payment validation, or counterfeit determination. Always verify currency using official Bank of Canada guidance and authorized equipment.</div>
+<footer>CADNote · Developed by Derrick Mirindi · David Sinkhonde · Frederic Mirindi</footer>
 </div>
 <script>
-const $=id=>document.getElementById(id);
+(function(){
+const $=function(id){return document.getElementById(id);};
 const canvas=$('canvas'),ctx=canvas.getContext('2d'),video=$('video');
-let session=null,mode='image',stream=null,running=false,conf=0.25,iou=0.45,rafId=null,fpsT=performance.now(),frames=0;
+let session=null,mode='image',stream=null,running=false,conf=0.25,iou=0.45,rafId=null,lastImg=null;
 const MODEL={path:'./best_fp32.onnx',inputSize:640,classes:['CAD 5','CAD 10','CAD 20','CAD 50','CAD 100','fr_maple_leaf','sign_gov'],colors:['#FF6A00','#0072CE','#00843D','#B10DC9','#FFB300','#111111','#2E2E2E']};
-const CACHE_NAME='cadnote-model-v2',CACHE_KEY='best-onnx';
+const CACHE_NAME='cadnote-model-v3',CACHE_KEY='best-fp32-onnx';
 function setStatus(txt,cls){$('statusText').textContent=txt;$('dot').className='status-dot '+(cls||'');}
 function setProgress(pct){const w=$('progressWrap'),b=$('progressBar');if(pct===null){w.classList.add('hide');}else{w.classList.remove('hide');b.style.width=pct+'%';}}
-async function getCachedModel(){
-if(!('indexedDB' in window))return null;
-try{
-const db=await new Promise((res,rej)=>{const r=indexedDB.open(CACHE_NAME,1);r.onupgradeneeded=()=>r.result.createObjectStore('models');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
-const tx=db.transaction('models','readonly');
-const store=tx.objectStore('models');
-const data=await new Promise((res,rej)=>{const r=store.get(CACHE_KEY);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
-db.close();
-return data?data.buffer:null;
-}catch(e){console.warn('Cache read:',e);return null;}
-}
-async function setCachedModel(buffer){
-if(!('indexedDB' in window))return;
-try{
-const db=await new Promise((res,rej)=>{const r=indexedDB.open(CACHE_NAME,1);r.onupgradeneeded=()=>r.result.createObjectStore('models');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
-const tx=db.transaction('models','readwrite');
-const store=tx.objectStore('models');
-store.put({buffer},CACHE_KEY);
-await new Promise((res,rej)=>{tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});
-db.close();
-}catch(e){console.warn('Cache write:',e);}
-}
-async function downloadModelWithProgress(url){
-const resp=await fetch(url);
-if(!resp.ok)throw new Error('Model download failed ('+resp.status+') for '+url+'. Ensure best_fp32.onnx (FP32) is uploaded to the repo root.');
-const total=+resp.headers.get('content-length')||0;
-const reader=resp.body.getReader();
-let received=0;
-const chunks=[];
-while(true){
-const{done,value}=await reader.read();
-if(done)break;
-chunks.push(value);
-received+=value.length;
-if(total>0)setProgress(Math.round(received/total*100));
-}
-const blob=new Blob(chunks);
-return await blob.arrayBuffer();
-}
-async function loadModel(){
-try{
-if(typeof ort==='undefined'){setStatus('ORT not loaded','err');return;}
-ort.env.wasm.numThreads=1;
-setStatus('Checking cache...','busy');
-let buffer=null;try{buffer=await getCachedModel();}catch(ce){console.warn('Cache read failed:',ce);buffer=null;}
-if(buffer){
-setStatus('Loading from cache...','busy');
-}else{
-setStatus('Downloading model...','busy');
-setProgress(0);
-buffer=await downloadModelWithProgress(MODEL.path);
-setProgress(null);
-setStatus('Caching model...','busy');
-await setCachedModel(buffer);
-}
-setStatus('Initializing session...','busy');
-session=await ort.InferenceSession.create(buffer,{executionProviders:['wasm'],graphOptimizationLevel:'all'});
-setStatus('Ready — upload a banknote','on');
-}catch(e){const m=String(e&&e.message||e);let friendly='Error: '+m;if(/float16|fp16|does not match expected type/i.test(m)){friendly='Model load failed: this ONNX file is FP16, which ONNX Runtime Web (WASM) does not support. Re-export best.pt as FP32 (half=False) and upload as best_fp32.onnx.';}else if(/no such file|404|failed to fetch|download failed/i.test(m)){friendly='Model file not found. Ensure best_fp32.onnx (FP32) is uploaded to the repository root.';}setStatus(friendly,'err');console.error(e);}
-}
+async function getCachedModel(){if(!('indexedDB' in window))return null;try{const db=await new Promise(function(res,rej){const r=indexedDB.open(CACHE_NAME,1);r.onupgradeneeded=function(){r.result.createObjectStore('models');};r.onsuccess=function(){res(r.result);};r.onerror=function(){rej(r.error);};});const tx=db.transaction('models','readonly');const store=tx.objectStore('models');const data=await new Promise(function(res,rej){const r=store.get(CACHE_KEY);r.onsuccess=function(){res(r.result);};r.onerror=function(){rej(r.error);};});db.close();return data?data.buffer:null;}catch(e){console.warn('Cache read:',e);return null;}}
+async function setCachedModel(buffer){if(!('indexedDB' in window))return;try{const db=await new Promise(function(res,rej){const r=indexedDB.open(CACHE_NAME,1);r.onupgradeneeded=function(){r.result.createObjectStore('models');};r.onsuccess=function(){res(r.result);};r.onerror=function(){rej(r.error);};});const tx=db.transaction('models','readwrite');tx.objectStore('models').put({buffer:buffer},CACHE_KEY);await new Promise(function(res,rej){tx.oncomplete=function(){res();};tx.onerror=function(){rej(tx.error);};});db.close();}catch(e){console.warn('Cache write:',e);}}
+async function downloadModel(url){const resp=await fetch(url);if(!resp.ok)throw new Error('Model download failed ('+resp.status+') for '+url+'. Ensure best_fp32.onnx (FP32) is uploaded to the repo root.');const total=+resp.headers.get('content-length')||0;const reader=resp.body.getReader();let received=0;const chunks=[];while(true){const r=await reader.read();if(r.done)break;chunks.push(r.value);received+=r.value.length;if(total>0)setProgress(Math.round(received/total*100));}return await new Blob(chunks).arrayBuffer();}
+async function loadModel(){try{if(typeof ort==='undefined'){setStatus('ONNX Runtime failed to load (check network/CDN).','err');return;}ort.env.wasm.numThreads=1;setStatus('Checking cache...','busy');let buffer=null;try{buffer=await getCachedModel();}catch(ce){console.warn('Cache read failed:',ce);buffer=null;}if(buffer){setStatus('Loading from cache...','busy');}else{setStatus('Downloading model...','busy');setProgress(0);buffer=await downloadModel(MODEL.path);setProgress(null);setStatus('Caching model...','busy');await setCachedModel(buffer);}setStatus('Initializing session...','busy');session=await ort.InferenceSession.create(buffer,{executionProviders:['wasm'],graphOptimizationLevel:'all'});setStatus('Ready — upload a banknote','on');}catch(e){const m=String(e&&e.message||e);let friendly='Error: '+m;if(/float16|fp16|does not match expected type/i.test(m)){friendly='Model load failed: this ONNX file is FP16, which ONNX Runtime Web (WASM) does not support. Re-export best.pt as FP32 (half=False) and upload as best_fp32.onnx.';}else if(/no such file|404|failed to fetch|download failed/i.test(m)){friendly='Model file not found. Ensure best_fp32.onnx (FP32) is uploaded to the repository root.';}setStatus(friendly,'err');console.error(e);}}
+function preprocess(source,sw,sh){const S=MODEL.inputSize;const scale=Math.min(S/sw,S/sh);const nw=Math.round(sw*scale),nh=Math.round(sh*scale);const padX=Math.floor((S-nw)/2),padY=Math.floor((S-nh)/2);const off=document.createElement('canvas');off.width=S;off.height=S;const octx=off.getContext('2d');octx.fillStyle='#727272';octx.fillRect(0,0,S,S);octx.drawImage(source,0,0,sw,sh,padX,padY,nw,nh);const img=octx.getImageData(0,0,S,S).data;const data=new Float32Array(S*S*3);const area=S*S;for(let i=0;i<area;i++){data[i]=img[i*4]/255;data[area+i]=img[i*4+1]/255;data[area*2+i]=img[i*4+2]/255;}return{tensor:new ort.Tensor('float32',data,[1,3,S,S]),scale:scale,padX:padX,padY:padY};}
+function iouCalc(a,b){const x1=Math.max(a[0],b[0]),y1=Math.max(a[1],b[1]),x2=Math.min(a[2],b[2]),y2=Math.min(a[3],b[3]);const w=Math.max(0,x2-x1),h=Math.max(0,y2-y1);const inter=w*h;const areaA=(a[2]-a[0])*(a[3]-a[1]),areaB=(b[2]-b[0])*(b[3]-b[1]);return inter/(areaA+areaB-inter+1e-9);}
+function nms(boxes){boxes.sort(function(a,b){return b.score-a.score;});const keep=[];for(let i=0;i<boxes.length;i++){let ok=true;for(let j=0;j<keep.length;j++){if(keep[j].cls===boxes[i].cls&&iouCalc(boxes[i].box,keep[j].box)>iou){ok=false;break;}}if(ok)keep.push(boxes[i]);}return keep;}
+function postprocess(output,pre){const S=MODEL.inputSize;const data=output.data;const dims=output.dims;const nc=MODEL.classes.length;const numAttrs=4+nc;const num=dims[2];const boxes=[];for(let i=0;i<num;i++){let best=0,bestc=0;for(let c=0;c<nc;c++){const v=data[(4+c)*num+i];if(v>best){best=v;bestc=c;}}if(best<conf)continue;const cx=data[0*num+i],cy=data[1*num+i],w=data[2*num+i],h=data[3*num+i];let x1=(cx-w/2-pre.padX)/pre.scale;let y1=(cy-h/2-pre.padY)/pre.scale;let x2=(cx+w/2-pre.padX)/pre.scale;let y2=(cy+h/2-pre.padY)/pre.scale;boxes.push({box:[x1,y1,x2,y2],score:best,cls:bestc});}return nms(boxes);}
+function draw(source,sw,sh,dets){canvas.width=sw;canvas.height=sh;ctx.drawImage(source,0,0,sw,sh);ctx.lineWidth=Math.max(2,sw/300);ctx.font='bold '+Math.max(14,Math.round(sw/40))+'px Helvetica,Arial,sans-serif';(dets||[]).forEach(function(d){const color=MODEL.colors[d.cls]||'#FF6A00';const x=d.box[0],y=d.box[1],w=d.box[2]-d.box[0],h=d.box[3]-d.box[1];ctx.strokeStyle=color;ctx.strokeRect(x,y,w,h);const label=MODEL.classes[d.cls]+' '+(d.score*100).toFixed(0)+'%';const tw=ctx.measureText(label).width;const th=Math.max(16,Math.round(sw/32));ctx.fillStyle=color;ctx.fillRect(x,y-th,tw+10,th);ctx.fillStyle='#fff';ctx.fillText(label,x+5,y-5);});}
+function updateStats(dets,ms){let maxc=0;(dets||[]).forEach(function(d){if(d.score>maxc)maxc=d.score;});$('statNotes').textContent=(dets||[]).length;$('statConf').textContent=maxc?(maxc*100).toFixed(1)+'%':'—';$('statMs').textContent=ms?Math.round(ms):'—';const list=$('detList');list.innerHTML='';(dets||[]).forEach(function(d){const row=document.createElement('div');row.className='det-row';const badge=document.createElement('span');badge.className='det-badge';badge.textContent=MODEL.classes[d.cls];const sc=document.createElement('span');sc.textContent=(d.score*100).toFixed(1)+'%';row.appendChild(badge);row.appendChild(sc);list.appendChild(row);});}
+async function runInference(source,sw,sh){if(!session){setStatus('Model not ready yet','busy');return;}const pre=preprocess(source,sw,sh);const t0=performance.now();const feeds={};feeds[session.inputNames[0]]=pre.tensor;const out=await session.run(feeds);const ms=performance.now()-t0;const output=out[session.outputNames[0]];const dets=postprocess(output,pre);draw(source,sw,sh,dets);updateStats(dets,ms);return dets;}
+function handleFile(file){if(!file)return;const img=new Image();img.onload=function(){lastImg=img;runInference(img,img.naturalWidth,img.naturalHeight);};img.onerror=function(){setStatus('Could not load image','err');};img.src=URL.createObjectURL(file);}
+async function camLoop(){if(!running)return;if(video.readyState>=2){await runInference(video,video.videoWidth,video.videoHeight);}rafId=requestAnimationFrame(camLoop);}
+async function startCamera(){try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});video.srcObject=stream;await video.play();running=true;$('startCam').disabled=true;$('stopCam').disabled=false;setStatus('Live detection running','on');camLoop();}catch(e){setStatus('Camera access denied or unavailable','err');console.error(e);}}
+function stopCamera(){running=false;if(rafId)cancelAnimationFrame(rafId);if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}$('startCam').disabled=false;$('stopCam').disabled=true;setStatus('Camera stopped','on');}
+function setMode(m){mode=m;document.querySelectorAll('.mode-btn').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-mode')===m);});if(m==='image'){$('imagePane').classList.remove('hide');$('camPane').classList.add('hide');if(running)stopCamera();}else{$('imagePane').classList.add('hide');$('camPane').classList.remove('hide');}}
+function wire(){const dz=$('dropZone'),fi=$('fileInput');dz.addEventListener('click',function(){fi.click();});fi.addEventListener('change',function(e){handleFile(e.target.files[0]);});dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('drag');});dz.addEventListener('dragleave',function(){dz.classList.remove('drag');});dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('drag');if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0]);});$('confSlider').addEventListener('input',function(e){conf=parseFloat(e.target.value);$('confVal').textContent=conf.toFixed(2);if(mode==='image'&&lastImg)runInference(lastImg,lastImg.naturalWidth,lastImg.naturalHeight);});$('iouSlider').addEventListener('input',function(e){iou=parseFloat(e.target.value);$('iouVal').textContent=iou.toFixed(2);if(mode==='image'&&lastImg)runInference(lastImg,lastImg.naturalWidth,lastImg.naturalHeight);});document.querySelectorAll('.mode-btn').forEach(function(b){b.addEventListener('click',function(){setMode(b.getAttribute('data-mode'));});});$('startCam').addEventListener('click',startCamera);$('stopCam').addEventListener('click',stopCamera);}
+wire();
+loadModel();
+})();
+</script>
+</body>
+</html>
