@@ -156,7 +156,7 @@ db.close();
 }
 async function downloadModelWithProgress(url){
 const resp=await fetch(url);
-if(!resp.ok)throw new Error('Download failed');
+if(!resp.ok)throw new Error('Model download failed ('+resp.status+') for '+url+'. Ensure best_fp32.onnx (FP32) is uploaded to the repo root.');
 const total=+resp.headers.get('content-length')||0;
 const reader=resp.body.getReader();
 let received=0;
@@ -176,7 +176,7 @@ try{
 if(typeof ort==='undefined'){setStatus('ORT not loaded','err');return;}
 ort.env.wasm.numThreads=1;
 setStatus('Checking cache...','busy');
-let buffer=await getCachedModel();
+let buffer=null;try{buffer=await getCachedModel();}catch(ce){console.warn('Cache read failed:',ce);buffer=null;}
 if(buffer){
 setStatus('Loading from cache...','busy');
 }else{
